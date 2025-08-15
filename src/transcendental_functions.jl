@@ -94,8 +94,8 @@ function ResidueReduce(f::F, D::Derivation; symbol=:α) where
     p, a = divrem(numerator(f), d)
     # For SubResultant with respect to t we have to construct the 
     # polynomial ring k[z][t] with z, t in this order (!)
-    kz, z = PolynomialRing(base_ring(d), symbol)
-    kzt, t = PolynomialRing(kz, var(parent(d)))
+    kz, z = polynomial_ring(base_ring(d), symbol)
+    kzt, t = polynomial_ring(kz, var(parent(d)))
     if degree(D(d))<=degree(d)
         r, Rs = SubResultant(d(t), a(t) - z*D(d)(t))
     else

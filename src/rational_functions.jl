@@ -80,8 +80,8 @@ end
 function IntRationalLogPart(A::PolyRingElem{T}, D::PolyRingElem{T}; make_monic::Bool=false, symbol=:α) where T <: FieldElement
     # See Bronstein's book, Section 2.5, p. 51 
     F = base_ring(A)
-    Ft, t = PolynomialRing(F, symbol)
-    FtX, X = PolynomialRing(Ft, symbols(parent(A))[1])
+    Ft, t = polynomial_ring(F, symbol)
+    FtX, X = polynomial_ring(Ft, symbols(parent(A))[1])
     R, Rs = SubResultant(D(X), A(X)-t*derivative(D)(X))
     Qs = Squarefree(R)
     ds = degree.(Qs)
@@ -116,7 +116,7 @@ end
 
 function Complexify(R::PolyRingElem{T}; symbols=[:α, :β]) where T <: FieldElement
     F = base_ring(R)
-    Fuv, uv = PolynomialRing(F, symbols)
+    Fuv, uv = polynomial_ring(F, symbols)
     u = uv[1]
     v = uv[2]
     c = collect(coefficients(R))
@@ -181,9 +181,9 @@ end
 function LogToReal(t::SumOfLogTerms; symbols=[:α, :β]) #{T, PP}) where {T<:FieldElement, PP<:PolyRingElem{T}}
     # See Bronstein's book, Section 2.8, p. 69 
     F = base_ring(t.R)
-    R, uv = PolynomialRing(F, symbols)
-    K = FractionField(R)
-    Kx, x = PolynomialRing(K, "x")
+    R, uv = polynomial_ring(F, symbols)
+    K = fraction_field(R)
+    Kx, x = polynomial_ring(K, "x")
     P, Q = Complexify(t.R)
     cc =[Complexify(c) for c in coefficients(t.S)]
     A = Kx([c[1] for c in cc])
@@ -224,7 +224,7 @@ function Eval(t::SumOfLogTerms; real_output::Bool=true)
             polynomial(F, [c(a) for c in coefficients(t.S)], var))) for a in as]
     end
     
-    as = roots(t.R, QQBar)  
+    as = roots(t.R)  # Simplified - find roots over base field  
     us = real.(as)
     vs = imag.(as)
     if iszero(vs) || !real_output

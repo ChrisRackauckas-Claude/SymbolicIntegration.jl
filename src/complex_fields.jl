@@ -48,7 +48,7 @@ BaseDerivation(D::ComplexExtensionDerivation) = D.D
 
 function constant_field(D::ComplexExtensionDerivation) 
     C = constant_field(D.D)
-    Cz, I = PolynomialRing(C, :I)
+    Cz, I = polynomial_ring(C, :I)
     ResidueField(Cz, I^2+1)
 end
 
@@ -59,7 +59,7 @@ function constantize(f::AbstractAlgebra.ResFieldElem{P}, D::ComplexExtensionDeri
     u = constantize(real(f), D.D)
     v = constantize(imag(f), D.D)
     C = parent(u)
-    Cz, I = PolynomialRing(C, :I)
+    Cz, I = polynomial_ring(C, :I)
     CI = ResidueField(Cz, I^2+1)   
     CI(u+v*I)
 end
@@ -131,7 +131,7 @@ satisfies `D1(√-1)=0`.
 """
 function Complexify(k::AbstractAlgebra.Field, D::Derivation) # where {T <:FieldElement, F<: AbstractAlgebra.Field{T}}
     !contains_I(k) || error("k already contains I=sqrt(-1)")
-    kz, I = PolynomialRing(k, :I)
+    kz, I = polynomial_ring(k, :I)
     kI = ResidueField(kz, I^2+1)
     DI = ComplexExtensionDerivation(kI, D)
     kI, kI(I), DI
@@ -154,8 +154,8 @@ function switch_t_i(K::AbstractAlgebra.ResField{P}, D::Derivation) where
     D0 = BaseDerivation(BaseDerivation(D))
     kI, I, D0I = Complexify(k, D0)
     v = var(base_ring(base_ring(base_ring(K))))
-    kIt, t = PolynomialRing(kI, v)
-    K1 = FractionField(kIt)
+    kIt, t = polynomial_ring(kI, v)
+    K1 = fraction_field(kIt)
     if iszero(D)
         D1 = NullDerivation(kIt)
     elseif isbasic(D)

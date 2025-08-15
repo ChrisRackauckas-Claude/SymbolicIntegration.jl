@@ -39,7 +39,7 @@ function constant_field(D::NullDerivation)
     if isa(R, AbstractAlgebra.Field)
         return R
     else
-        return FractionField(R)
+        return fraction_field(R)
     end
 end
 
@@ -71,7 +71,7 @@ function constant_field(D::BasicDerivation)
     if isa(R, AbstractAlgebra.Field)
         return R
     else
-        return FractionField(R)
+        return fraction_field(R)
     end
 end
 
@@ -289,7 +289,7 @@ function constant_roots(f::PolyRingElem{T}, D::Derivation; useQQBar::Bool=false)
     @assert iscompatible(f, D)
     p = map_coefficients(c->constantize(c, BaseDerivation(D)), constant_factors(f)) 
     if useQQBar
-        return roots(p, QQBar) 
+        return roots(p) 
     else
         return roots(p)
     end
@@ -302,7 +302,7 @@ function constant_roots(f::PolyRingElem{T}, D::Derivation; useQQBar::Bool=false)
     pp = map_coefficients(c->real(c), p*map_coefficients(c->conj(c), p))
     g = gcd(pp, derivative(pp))
     if useQQBar
-        return roots(g, QQBar) 
+        return roots(g) 
     else
         return roots(g)
     end

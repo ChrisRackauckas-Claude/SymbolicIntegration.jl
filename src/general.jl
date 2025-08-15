@@ -147,7 +147,7 @@ end
 function Nemo.roots(f::PolyRingElem{QQBarFieldElem})
     n = degree(f)
     X = gen(parent(f))
-    _, xys= PolynomialRing(Nemo.QQBar, vcat(:x,  [Symbol("y$i") for i = 1:n]))
+    _, xys= polynomial_ring(Nemo.QQBar, vcat(:x,  [Symbol("y$i") for i = 1:n]))
     x = xys[1]
     ys = xys[2:end]
 
@@ -160,7 +160,7 @@ function Nemo.roots(f::PolyRingElem{QQBarFieldElem})
 
     g = map_coefficients(c->QQ(c), G(X, zeros(parent(X), n)...))
     
-    rs = roots(g, QQBar)
+    rs = roots(g)
     [r for r in rs if iszero(f(r))]
 end
 
