@@ -28,7 +28,7 @@ K, gs, D = TowerOfDifferentialFields([t1//x, (t2^2+1)*x*t1 + Z])
 (Note: by adding `Z` to a polynomial we explicitely transform it to an element of the fraction field.)
 """
 function TowerOfDifferentialFields(Hs::Vector{F})  where 
-    {T<:FieldElement, P<:MPolyElem{T}, F<:FracElem{P}}
+    {T<:FieldElement, P<:MPolyRingElem{T}, F<:FracElem{P}}
     n = length(Hs)
     n>0 || error("height extension tower must be >= 1")
     MF = parent(Hs[1])
@@ -74,11 +74,11 @@ f1 = transform_mpoly_to_tower(f, gs)  # element of K
 ```
 """
 function transform_mpoly_to_tower(f::F, gs::Vector) where 
-    {T<:FieldElement, P<:MPolyElem{T}, F<:FracElem{P}}
+    {T<:FieldElement, P<:MPolyRingElem{T}, F<:FracElem{P}}
     numerator(f)(gs...)//denominator(f)(gs...)
 end
 
-@syms Root(x::qqbar)
+@syms Root(x::QQBarFieldElem)
 
 to_symb(t::Number) = t
 
@@ -90,11 +90,11 @@ function to_symb(t::Rational)
     end
 end
 
-to_symb(t::fmpq) = to_symb(Rational(t))
+to_symb(t::QQFieldElem) = to_symb(Rational(t))
 
-function to_symb(t::qqbar)
+function to_symb(t::QQBarFieldElem)
     if degree(t)==1 
-        return to_symb(fmpq(t))
+        return to_symb(QQ(t))
     end
     kx, _ = PolynomialRing(Nemo.QQ, :x)
     f = minpoly(kx, t)
@@ -126,7 +126,7 @@ function height(K::F) where F<:AbstractAlgebra.Field
 end
 
 function height(K::F) where
-    {T<:FieldElement, P<:PolyElem{T}, F<:FracField{P}}
+    {T<:FieldElement, P<:PolyRingElem{T}, F<:FracField{P}}
     height(base_ring(base_ring(K)))+1
 end
 
@@ -137,9 +137,9 @@ end
 
 subst_tower(t::Number, subs::Vector, h::Int=0) = to_symb(t)  
 
-subst_tower(t::fmpq, subs::Vector, h::Int=0) = to_symb(t)
+subst_tower(t::QQFieldElem, subs::Vector, h::Int=0) = to_symb(t)
 
-subst_tower(t::qqbar, subs::Vector, h::Int=0) = to_symb(t)
+subst_tower(t::QQBarFieldElem, subs::Vector, h::Int=0) = to_symb(t)
 
 function convolution(a::Vector{T}, b::Vector{T}, s::Int; output_size::Int=0) where T<:RingElement
     @assert s==1 || s==-1
@@ -164,7 +164,7 @@ function convolution(a::Vector{T}, b::Vector{T}, s::Int; output_size::Int=0) whe
 end
 
 function tan2sincos(f::K, arg::SymbolicUtils.Symbolic, vars::Vector, h::Int=0) where 
-    {T<:FieldElement, P<:PolyElem{T}, K<:FracElem{P}}
+    {T<:FieldElement, P<:PolyRingElem{T}, K<:FracElem{P}}
     # This function transforms a Nemo/AbstractAlgebra rational funktion with
     # varibale t representing tan(arg) to a SymbolicUtils expression which is
     # a quotient in which both numerator and denominator are linear combinations
@@ -217,7 +217,7 @@ function tan2sincos(f::K, arg::SymbolicUtils.Symbolic, vars::Vector, h::Int=0) w
 end
 
 function subst_tower(f::F, vars::Vector, h::Int) where
-    {T<:FieldElement, P<:PolyElem{T}, F<:FracElem{P}}
+    {T<:FieldElement, P<:PolyRingElem{T}, F<:FracElem{P}}
     if isa(vars[h], SymbolicUtils.Term) && operation(vars[h])==tan && !isone(denominator(f))
         return tan2sincos(f, arguments(vars[h])[1], vars, h)
     end
@@ -229,7 +229,7 @@ function subst_tower(f::F, vars::Vector, h::Int) where
 end
 
 function subst_tower(p::P, vars::Vector, h::Int) where
-    {T<:FieldElement, P<:PolyElem{T}}
+    {T<:FieldElement, P<:PolyRingElem{T}}
     if iszero(p)
         return zero(vars[h])
     end
@@ -244,13 +244,13 @@ function subst_tower(p::P, vars::Vector, h::Int) where
 end
 
 function subst_tower(f::F, vars::Vector) where
-    {T<:FieldElement, P<:PolyElem{T}, F<:FracElem{P}}
+    {T<:FieldElement, P<:PolyRingElem{T}, F<:FracElem{P}}
     h = height(parent(f))
     subst_tower(f, vars, h)
 end
 
 function subst_tower(p::P, vars::Vector) where
-    {T<:FieldElement, P<:PolyElem{T}}
+    {T<:FieldElement, P<:PolyRingElem{T}}
     h = height(parent(p))
     subst_tower(p, vars, h)
 end
@@ -472,9 +472,9 @@ end
 
 transform_symtree_to_mpoly(f::Number, vars::Vector, vars_mpoly::Vector) = f
 
-(F::CalciumQQBarField)(x::Rational) = F(fmpq(x))
-Base.promote(x::fmpq, y::MPolyElem{Nemo.qqbar}) = promote(qqbar(x), y)
-Base.promote(x::MPolyElem{Nemo.qqbar}, y::fmpq) = promote(x, qqbar(y))
+(F::QQBarField)(x::Rational) = F(QQ(x))
+Base.promote(x::QQFieldElem, y::MPolyRingElem{Nemo.QQBarFieldElem}) = promote(algebraic_closure(QQ)(x), y)
+Base.promote(x::MPolyRingElem{Nemo.QQBarFieldElem}, y::QQFieldElem) = promote(x, algebraic_closure(QQ)(y))
 
 transform_symtree_to_mpoly(f::SymbolicUtils.Add, vars::Vector, vars_mpoly::Vector) =
     sum([transform_symtree_to_mpoly(a, vars, vars_mpoly) for a in arguments(f)])
@@ -500,7 +500,7 @@ end
 
 
 function TowerOfDifferentialFields(terms::Vector{Term})  where 
-    {T<:FieldElement, P<:MPolyElem{T}, F<:FracElem{P}}
+    {T<:FieldElement, P<:MPolyRingElem{T}, F<:FracElem{P}}
     n = length(terms)
     MF = parent(terms[1].arg)
     MR = base_ring(MF)
