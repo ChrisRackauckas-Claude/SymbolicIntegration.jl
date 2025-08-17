@@ -171,7 +171,7 @@ function tan2sincos(f::K, arg::SymbolicUtils.Symbolic, vars::Vector, h::Int=0) w
     # of expressions of the form cos(2*j*arg) or sin(2*j*arg) where j is an integer >=0.
     k = base_ring(base_ring(parent(f)))
     kz, I = polynomial_ring(k, :I)
-    kI = ResidueField(kz, I^2+1)
+    kI = residue_field(kz, I^2+1)[1]
     kIE, E = polynomial_ring(kI, :E)
     # I represents sqrt(-1), E represents exp(2*I*arg), so that t = I*(1-E)//(1+E) represents tan(arg)
     t = I*(1 - E)//(1 + E)   
@@ -330,11 +330,19 @@ function analyze_expr(f::SymbolicUtils.Symbolic , funs::Vector, vars::Vector{Sym
             if i === nothing
                 push!(expArgs, a)
             else
-                a = expArgs[i]
-                n = rational_multiple(arguments(f)[1], a)
+                n = rational_multiple(a, expArgs[i])
+                if !isone(denominator(n)) # n not an integer
+                    expArgs[i] = 1//denominator(n)*expArgs[i]
+                    throw(UpdatedArgList())            
+                end
+                n = numerator(n)
             end
-            return subst_exp_arg(a, vars, args, n)
-        elseif op == tan
+            if n != 1
+                f_new = exp(expArgs[i])^n
+                return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+            end
+            # Continue to general function handling below
+        elseif op == tan        
             # Handle tan function
             a = arguments(f)[1]
             i = findfirst(x -> is_rational_multiple(a, x), tanArgs)
@@ -342,13 +350,81 @@ function analyze_expr(f::SymbolicUtils.Symbolic , funs::Vector, vars::Vector{Sym
             if i === nothing
                 push!(tanArgs, a)
             else
-                a = tanArgs[i]
-                n = rational_multiple(arguments(f)[1], a)
+                n = rational_multiple(a, tanArgs[i])
+                if !isone(denominator(n)) # n not an integer
+                    tanArgs[i] = 1//denominator(n)*tanArgs[i]
+                    throw(UpdatedArgList())            
+                end
+                n = numerator(n) 
             end
-            return subst_tan_arg(a, vars, args, n)
-        else
-            throw(NotImplementedError("integrand contains unsupported operation $op"))
+            if n != 1
+                f_new = tan_nx(n, tanArgs[i])
+                return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+            end
+            # Continue to general function handling below
+        elseif op == sinh
+            # Transform sinh to exponentials
+            a = arguments(f)[1]
+            f_new = 1//2*(exp(a) - 1/exp(a))
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == cosh
+            # Transform cosh to exponentials  
+            a = arguments(f)[1]
+            f_new = 1//2*(exp(a) + 1/exp(a))
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == csch # 1/sinh
+            a = arguments(f)[1]
+            f_new = 2/(exp(a) - 1/exp(a))
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == sech
+            a = arguments(f)[1]
+            f_new = 2/(exp(a) + 1/exp(a))
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == tanh
+            a = arguments(f)[1]
+            f_new = (exp(a) - 1/exp(a))/(exp(a) + 1/exp(a))
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == coth
+            a = arguments(f)[1]
+            f_new = (exp(a) + 1/exp(a))/(exp(a) - 1/exp(a))
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)        
+        elseif op == sin # transform to half angle format
+            a = arguments(f)[1]
+            f_new = 2*tan(1//2*a)/(1 + tan(1//2*a)^2)
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == cos
+            a = arguments(f)[1]
+            f_new = (1 - tan(1//2*a)^2)/(1 + tan(1//2*a)^2)
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == csc # 1/sin
+            a = arguments(f)[1]
+            f_new = 1//2*(1 + tan(1//2*a)^2)/tan(1//2*a)
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == sec # 1/cos
+            a = arguments(f)[1]
+            f_new = (1 + tan(1//2*a)^2)/(1 - tan(1//2*a)^2)
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
+        elseif op == cot
+            a = arguments(f)[1]
+            f_new = 1/tan(a)
+            return analyze_expr(f_new, funs, vars, args, tanArgs, expArgs)
         end
+        
+        # General function handling (for exp, log, atan, tan that didn't get transformed above)
+        i = findfirst(x -> hash(x)==hash(f), funs) 
+        if i !== nothing
+            return vars[i]
+        end    
+        op in [exp, log, atan, tan] ||        
+            throw(NotImplementedError("integrand contains unsupported function $op"))
+        a = arguments(f)[1]
+        p = analyze_expr(a, funs, vars, args, tanArgs, expArgs)
+        tname = Symbol(:t, length(vars)) 
+        t = SymbolicUtils.Sym{Real}(tname)
+        push!(funs, f)
+        push!(vars, t)
+        push!(args, p)
+        return t
     catch e
         if isa(e, UpdatedArgList)
             rethrow(e)
@@ -516,7 +592,7 @@ function analyze_expr(f::SymbolicUtils.Term , funs::Vector, vars::Vector{Symboli
         throw(NotImplementedError("integrand contains unsupported function $op"))
     p = analyze_expr(a, funs, vars, args, tanArgs, expArgs)
     tname = Symbol(:t, length(vars)) 
-    t = SymbolicUtils.Sym{Number, Nothing}(tname, nothing)
+    t = SymbolicUtils.Sym{Real}(tname)
     push!(funs, f)
     push!(vars, t)
     push!(args, p)

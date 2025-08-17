@@ -105,7 +105,7 @@ rationalize(x::QQFieldElem) = convert(Rational{BigInt}, x) # Nemo rational type
 
 function rationalize(x::QQBarFieldElem) #Nemo algebraic number type
     (degree(x)==1 && iszero(imag(x))) || error("not rational")
-    convert(Rational{BigInt}, QQ(x)) 
+    convert(Rational{BigInt}, Nemo.QQ(x)) 
 end
 
 function rationalize(x::P) where P<:PolyRingElem

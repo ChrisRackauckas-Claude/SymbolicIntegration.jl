@@ -200,8 +200,9 @@ function positive_constant_coefficient(f::PolyRingElem)
 end
 
 function rationalize_if_possible(x::QQBarFieldElem) #Nemo algebraic number type
-    if degree(x)==1
-        return QQ(x)
+    if degree(x)==1 && iszero(imag(x))
+        # Convert to rational using the existing rationalize function from general.jl
+        return rationalize(x)
     else
         return x
     end
@@ -224,7 +225,31 @@ function Eval(t::SumOfLogTerms; real_output::Bool=true)
             polynomial(F, [c(a) for c in coefficients(t.S)], var))) for a in as]
     end
     
-    as = roots(t.R)  # Simplified - find roots over base field  
+    # Try to find roots, including complex ones for simple cases
+    as = roots(t.R)  # First try rational roots
+    
+    # If we don't have enough roots and it's a quadratic, try to find complex roots
+    if length(as) < degree(t.R) && degree(t.R) == 2
+        # For quadratic ax^2 + bx + c, use quadratic formula
+        coeffs = collect(coefficients(t.R))
+        if length(coeffs) >= 2
+            # Pad with zeros if needed
+            while length(coeffs) < 3
+                push!(coeffs, zero(coeffs[1]))
+            end
+            a, b, c = coeffs[3], length(coeffs) > 1 ? coeffs[2] : zero(coeffs[1]), coeffs[1]
+            
+            if !iszero(a)
+                discriminant = b^2 - 4*a*c
+                # Create complex roots using QQBar
+                QQBar = algebraic_closure(Nemo.QQ)
+                sqrt_discriminant = QQBar(discriminant)^(1//2)
+                root1 = (-QQBar(b) + sqrt_discriminant) // (2*QQBar(a))
+                root2 = (-QQBar(b) - sqrt_discriminant) // (2*QQBar(a))
+                as = [root1, root2]
+            end
+        end
+    end  
     us = real.(as)
     vs = imag.(as)
     if iszero(vs) || !real_output
