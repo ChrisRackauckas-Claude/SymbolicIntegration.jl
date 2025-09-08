@@ -20,9 +20,20 @@ It comes with absolutely no warranty whatsoever.
 
 
 ## Installation
+<strike>
+  
 ```julia
 julia> using Pkg; Pkg.add("SymbolicIntegration")
 ```
+
+</strike>
+
+```julia
+julia> using Pkg; Pkg.add(PackageSpec(url="https://github.com/HaraldHofstaetter/SymbolicIntegration.jl"))
+```
+
+Note: The package name `SymbolicIntegration` and large parts of the code have been taken over by [JuliaSymbolics](https://github.com/JuliaSymbolics/SymbolicIntegration.jl).
+There is no affiliation between the author and JuliaSymbolics. 
 
 ## Usage
 ```julia
