@@ -36,6 +36,7 @@ Note: The package name `SymbolicIntegration` and large parts of the code have be
 There is no affiliation between the author and JuliaSymbolics. 
 
 ## Usage
+
 ```julia
 julia> using SymbolicIntegration, SymbolicUtils
 
@@ -59,6 +60,22 @@ julia> f = 1/(1+2*cos(x))
 
 julia> g = integrate(f, x)
 log(-4 - sqrt(16//3)*tan((1//2)*x))*sqrt(1//3) - log(sqrt(16//3)*tan((1//2)*x) - 4)*sqrt(1//3)
+```
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` folder:
+
+- **[Getting Started Tutorial](docs/src/tutorials/getting_started.md)**: Learn the basics of symbolic integration
+- **[Method Selection Guide](docs/src/tutorials/method_selection.md)**: Understand how integration methods are chosen
+- **[Advanced Examples](docs/src/tutorials/advanced_examples.md)**: Complex integration problems and solutions  
+- **[API Reference](docs/src/api.md)**: Detailed function documentation
+
+To build the documentation locally:
+
+```julia
+julia> using Pkg; Pkg.activate("docs/")
+julia> include("docs/make.jl")
 ```
 
 ## Tests
